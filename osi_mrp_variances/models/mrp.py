@@ -123,7 +123,8 @@ class MRPWorkorder(models.Model):
     rework_qty = fields.Float('Rework Qty')
     actual_variance_labor = fields.Float('Actual Labor Variance')
     actual_variance_overhead = fields.Float('Actual Overhead Variance')
-    cycle = fields.Float('Number of Cycles')
+    cycle = fields.Float('Time for 1 cycle (hour)',
+        help="Time in hours for doing one cycle.")
     costs_cycle = fields.Float('Cost per Cycle')
     time_start = fields.Float('Time for Setup')
     time_stop = fields.Float('Time for Cleanup')
@@ -147,6 +148,22 @@ class MRPWorkorder(models.Model):
         compute='_compute_wo_costs_overview'
     )
 
+    @api.model
+    def create(self, vals):
+        workorder = super(MRPWorkorder, self).create(vals)
+        workcenter_id = workorder.workcenter_id
+        operation_id = workorder.operation_id
+        new_vals = {}
+        if operation_id:
+            new_vals.update({'cycle': operation_id.cycle_nbr,
+                             'hour': operation_id.hour_nbr})
+        if workcenter_id:
+            new_vals.update({
+                'costs_hour': workcenter_id.costs_hour,
+                'overhead_cost_per_cycle': workcenter_id.overhead_cost_per_cycle})
+        if new_vals:
+            workorder.update(new_vals)
+        return workorder
 
     @api.multi
     def record_production(self):
@@ -316,8 +333,9 @@ class MRPWorkorder(models.Model):
                 raise UserError(_("Manufacturing Account and/or Labor Variance Account needs to be set on the product %s.") % (product.name,))
             # Create data for account move and post them
             name = production.name + '-' + 'Extra Labor::' + workorder.name
-            analytic_account = self.env['account.analytic.account'].search(
-                [('manufacture','=',True)], limit=1)
+            analytic_account = False
+            if workorder.workcenter_id.costs_hour_account_id:
+                analytic_account = workorder.workcenter_id.costs_hour_account_id.id
             debit_line_vals = {
                 'name': name,
                 'product_id': product.id,
@@ -328,7 +346,7 @@ class MRPWorkorder(models.Model):
                 'debit': valuation_amount > 0 and valuation_amount or 0,
                 'credit': valuation_amount < 0 and -valuation_amount or 0,
                 'account_id': debit_account_id,
-                'analytic_account_id': analytic_account.id,
+                'analytic_account_id': analytic_account,
             }
             credit_line_vals = {
                 'name': name,
@@ -340,7 +358,7 @@ class MRPWorkorder(models.Model):
                 'credit': valuation_amount > 0 and valuation_amount or 0,
                 'debit': valuation_amount < 0 and -valuation_amount or 0,
                 'account_id': credit_account_id,
-                'analytic_account_id': analytic_account.id,
+                'analytic_account_id': analytic_account,
             }
             move_lines = [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]
 
@@ -367,7 +385,7 @@ class MRPWorkorder(models.Model):
                 'debit': overhead_valuation_amount > 0 and overhead_valuation_amount or 0,
                 'credit': overhead_valuation_amount < 0 and -overhead_valuation_amount or 0,
                 'account_id': debit_account_id,
-                'analytic_account_id': analytic_account.id,
+                'analytic_account_id': analytic_account,
             }
             credit_line_vals = {
                 'name': name,
@@ -379,7 +397,7 @@ class MRPWorkorder(models.Model):
                 'credit': overhead_valuation_amount > 0 and overhead_valuation_amount or 0,
                 'debit': overhead_valuation_amount < 0 and -overhead_valuation_amount or 0,
                 'account_id': credit_account_id,
-                'analytic_account_id': analytic_account.id,
+                'analytic_account_id': analytic_account,
             }
             move_lines.append((0, 0, debit_line_vals))
             move_lines.append((0, 0, credit_line_vals))
@@ -400,14 +418,9 @@ class MRPWorkorder(models.Model):
         debit_account_id = False
 
         # Calculate valuation_amount for Labor
-        print ("\n===self.cycle=====", self.cycle, self.costs_cycle)
         cycle_cost = self.cycle * self.costs_cycle
-        print ("\n===cycle_cost====", cycle_cost)
-        print ("\n===self.time_start + self.time_stop + self.hour * self.cycle======", self.time_start, self.time_stop, self.hour, self.cycle)
         hour_cost = (self.time_start + self.time_stop + self.hour * self.cycle) * self.costs_hour
-        print ("\n===hour_cost=", hour_cost)
         valuation_amount = cycle_cost + hour_cost
-        print ("\n===valuation_amount======", valuation_amount)
 
         # the company currency... so we need to use round() before creating the accounting entries.
         valuation_amount = self.production_id and (self.production_id.company_id.currency_id.round(valuation_amount * self.qty_production)) or 0
@@ -432,8 +445,9 @@ class MRPWorkorder(models.Model):
             raise UserError(_("It seems Manufacturing Account or Labor Variance Account for product %s is not set. Which means there is probably a configuration error") % (self.product_id.name,))
         # Create data for account move and post them
         name = self.production_id.name + '-' + 'Std Labor::' + self.name
-        analytic_account = self.env['account.analytic.account'].search(
-            [('manufacture','=',True)], limit=1)
+        analytic_account = False
+        if self.workcenter_id.costs_hour_account_id:
+            analytic_account = self.workcenter_id.costs_hour_account_id.id
 
         debit_line_vals = {
             'name': name,
@@ -445,7 +459,7 @@ class MRPWorkorder(models.Model):
             'debit': valuation_amount > 0 and valuation_amount or 0,
             'credit': valuation_amount < 0 and -valuation_amount or 0,
             'account_id': debit_account_id,
-            'analytic_account_id': analytic_account.id,
+            'analytic_account_id': analytic_account,
         }
         credit_line_vals = {
             'name': name,
@@ -457,7 +471,7 @@ class MRPWorkorder(models.Model):
             'credit': valuation_amount > 0 and valuation_amount or 0,
             'debit': valuation_amount < 0 and -valuation_amount or 0,
             'account_id': credit_account_id,
-            'analytic_account_id': analytic_account.id,
+            'analytic_account_id': analytic_account,
         }
         move_lines = [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]
 
@@ -482,7 +496,7 @@ class MRPWorkorder(models.Model):
             'debit': overhead_valuation_amount > 0 and overhead_valuation_amount or 0,
             'credit': overhead_valuation_amount < 0 and -overhead_valuation_amount or 0,
             'account_id': debit_account_id,
-            'analytic_account_id': analytic_account.id,
+            'analytic_account_id': analytic_account,
         }
         credit_line_vals = {
             'name': name,
@@ -494,7 +508,7 @@ class MRPWorkorder(models.Model):
             'credit': overhead_valuation_amount > 0 and overhead_valuation_amount or 0,
             'debit': overhead_valuation_amount < 0 and -overhead_valuation_amount or 0,
             'account_id': credit_account_id,
-            'analytic_account_id': analytic_account.id,
+            'analytic_account_id': analytic_account,
         }
         move_lines.append((0, 0, debit_line_vals))
         move_lines.append((0, 0, credit_line_vals))
