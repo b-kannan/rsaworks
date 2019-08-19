@@ -338,7 +338,8 @@ class FileEntry(object):
         self.addenda_record = []
 
         for index, addenda in enumerate(addenda_record):
-            payment_related_info = addenda.get('payment_related_info').replace("/","-")
+            payment_related_info = addenda.get('payment_related_info').replace("/","_")
+            payment_related_info = payment_related_info.replace("-","_")
             self.addenda_record.append(
                 AddendaRecord(
                     self.entry_detail.std_ent_cls_code,
@@ -363,5 +364,4 @@ class FileEntry(object):
 
         for addenda in self.addenda_record:
             ret_string += addenda.get_row() + line_ending
-
         return ret_string
