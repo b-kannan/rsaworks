@@ -1,7 +1,7 @@
 from odoo import api, models, fields, _
 from odoo.exceptions import UserError
 from string import ascii_uppercase
-from ach.builder import AchFile
+from odoo.addons.account_banking_ach_base.ach.builder import AchFile
 
 
 CREDIT_AUTOMATED_RETURN = '21'
