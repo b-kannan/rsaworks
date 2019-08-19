@@ -74,7 +74,6 @@ class AchFile(object):
 
         entries = list()
         entry_counter = 1
-
         for record in batch_entries:
 
             entry = EntryDetail(std_ent_cls_code)
@@ -92,7 +91,10 @@ class AchFile(object):
             # Check for CTX
             if entry_desc == 'RSAPAYMENT':
                 # 8th field
-                entry.num_add_recs = "TODO"
+                if record.get('addenda', False):
+                    entry.num_add_recs = len(record.get('addenda')[0])
+                else:
+                    entry.num_add_recs = 0
                 # 9th field
                 entry.recv_cmpy_name = record['name'].upper()[:16]
             else:

@@ -22,7 +22,6 @@
     ],
     "external_dependencies": {
         "python": ['stdnum',
-                   'ach',
                    ],
     },
     'installable': True,
