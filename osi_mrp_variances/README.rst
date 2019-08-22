@@ -7,10 +7,9 @@ MRP WIP Labor/Material Variance
 ===============================
 
 This module add journal entries for standard labor and overhead absorption,
-variances in material, labor and overhead.
+variances in material, labor and overhead. It handles journal entries for
+cost method = FIFO or Standard.
 
-This will allow to remove raw materials from Manufacture order. It will add
-extra work order if needed.
 
 Configuration
 =============
@@ -45,4 +44,5 @@ Credits
 Contributors
 ------------
 
+* Balaji Kannan < bkannan@opensourceintegrators.com>
 * Bhavesh Odedra <bodedra@opensourceintegrators.com>
