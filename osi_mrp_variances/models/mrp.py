@@ -696,7 +696,6 @@ class MRPProduction(models.Model):
     def _cal_price(self, consumed_moves):
         """Set a price unit on the finished move according to `consumed_moves`.
         """
-        import pdb;pdb.set_trace()
         production_cost = ovh_cost = labor_cost = mtl_cost = 0.0
         if consumed_moves:
             mtl_cost = super(MRPProduction, self)._cal_price(consumed_moves)
