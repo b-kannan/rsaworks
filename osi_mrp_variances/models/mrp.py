@@ -395,6 +395,7 @@ class MRPWorkorder(models.Model):
             # create default entry
             if not workorder.add_consumption:
                 workorder._create_wo_start_account_move()
+                continue
             
             # Calculate valuation_amount
             product = workorder.product_id
@@ -698,7 +699,7 @@ class MRPProduction(models.Model):
         """
         production_cost = ovh_cost = labor_cost = mtl_cost = 0.0
         if consumed_moves:
-            mtl_cost = super(MRPProduction, self)._cal_price(consumed_moves)
+            mtl_cost = sum([-m.value for m in consumed_moves])
             
         for workorder in self.workorder_ids:
             labor_cost += workorder.real_labor
