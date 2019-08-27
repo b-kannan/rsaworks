@@ -3,3 +3,4 @@
 from . import maintenance
 from . import storage
 from . import wo
+from . import subscription
