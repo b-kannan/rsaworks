@@ -6,7 +6,7 @@ import requests
 
 
 class SaleSubscription(models.Model):
-    _inherit = 'sale_subscription'
+    _inherit = 'sale.subscription'
     
 #     equip_id = fields.Char(string='Equip_id')
-    storage_id = fields.One2many('storage', string='Storage', related="subscription_id")
+    storage_id = fields.One2many('storage', 'subscription_id', string='Storage')

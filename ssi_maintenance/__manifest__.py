@@ -17,6 +17,7 @@
         'maintenance',
         'mrp',
         'mrp_maintenance',
+        'sale_subscription',
         'ssi_jobs',
     ],
     "data":  [
