@@ -13,3 +13,9 @@ class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
     workcenter_id = fields.Many2one('mrp.workcenter', string='Workcenter')
+
+    @api.one
+    def _prepare_analytic_line(self):
+        result = super(AccountMoveLine, self)._prepare_analytic_line()        
+        result.update({'workcenter_id': self.workcenter_id.id or False})
+        return result

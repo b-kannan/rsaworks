@@ -78,7 +78,7 @@ class MRPWorkorder(models.Model):
                 value_burden = value and value[1]
                 
                 if value:
-                    cost_dict[date].update((value_labor + labor, value_burden + burden))
+                    cost_dict.update({date:(value_labor + labor, value_burden + burden)})
                     
                 else:
                     cost_dict[date] = (labor, burden)
@@ -87,7 +87,7 @@ class MRPWorkorder(models.Model):
                     
             # write journal entry
             for key in cost_dict:
-                self.create_account_move({key:cost_dict[key]})
+                wo.create_account_move({key:cost_dict[key]})
                 
             wo.update({
                 'labor_cost': wo.labor_cost + labor_total,
