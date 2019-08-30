@@ -52,7 +52,7 @@ class MRPWorkorder(models.Model):
             if wc.burden_type == 'rate':
                 burden_rate = wc.burden_costs_hour
             elif wc.burden_type == 'percent':
-                burden_rate = labor_rate * wc.burden_costs_percent
+                burden_rate = labor_rate * wc.burden_costs_percent / 100
         
             time_ids = wo.time_ids.filtered(lambda tl: not tl.cost_already_recorded)
             
@@ -66,7 +66,9 @@ class MRPWorkorder(models.Model):
                 if time_rec.cost_already_recorded:
                     continue
                     
-                labor = amount * labor_rate
+                labor = time_rec.duration * labor_rate
+                burden = time_rec.duration * burden_rate
+                
                 if wc_burden_type == 'rate':
                     burden = amount * burden_rate
                 else:
@@ -75,12 +77,12 @@ class MRPWorkorder(models.Model):
                 labor_total += labor
                 burden_total += burden
                 
-                date = time_rec.date_end
+                date = time_rec.date_end.date()
                 value = cost_dict.get(date, False)
                 value_labor = value and value[0]
                 value_burden = value and value[1]
                 
-                if existing_value:
+                if value:
                     cost_dict[date].update((value_labor + labor, value_burden + burden))
                     
                 else:
@@ -89,8 +91,8 @@ class MRPWorkorder(models.Model):
                 time_rec.update({'cost_already_recorded': True})
                     
             # write journal entry
-            for item in cost_dict:
-                self.create_account_move(item)
+            for key in cost_dict:
+                self.create_account_move({key:cost_dict[key]})
                 
             wo.update({
                 'labor_cost': wo.labor + labor_total,
@@ -101,9 +103,10 @@ class MRPWorkorder(models.Model):
     def create_account_move(self, cost_day):
     
         move_obj = self.env['account.move']
+        workorder = self
+        for date in cost_day:
         
-        for date, cost in cost_day.iteritems():
-            # Calculate valuation_amount
+            cost = cost_day[date]
             product = workorder.product_id
             production = workorder.production_id
 
@@ -113,6 +116,9 @@ class MRPWorkorder(models.Model):
             labor_absorption_acc_id = accounts['labor_absorption_acc_id'].id
             overhead_absorption_acc_id = accounts['overhead_absorption_acc_id'].id
             production_account_id = accounts['production_account_id'].id
+            job_id = production.ssi_job_id or False
+            partner_id = job_id and job_id.partner_id.id or False
+            analytic_account_id = ssi_job_id.aa_id.id or False
 
             if not labor_absorption_acc_id or not overhead_absorption_acc_id:
                 raise UserError(_("Labor absorption and labor burden accounts need to be set on the product %s.") % (product.name,))
@@ -124,8 +130,8 @@ class MRPWorkorder(models.Model):
             
             name = production.name + '-' +  workorder.name
             name = workorder.add_consumption and ('Extra Work: ' + name) or name
-            ref = 'Labor - ' + date
-            ref1 = 'Burden - ' + date
+            ref = 'Labor - ' + date.strftime("%Y-%m-%d")
+            ref1 = 'Burden - ' + date.strftime("%Y-%m-%d")
             
             # labor move lines
             debit_line_vals = {
@@ -134,12 +140,12 @@ class MRPWorkorder(models.Model):
                 'quantity': 1,
                 'product_uom_id': product.uom_id.id,
                 'ref': ref,
-                'partner_id': production.analytic_account_id and production.analytic_account_id.partner_id or False,
+                'partner_id': partner_id,
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[0],
                 'account_id': production_account_id,
-                'analytic_account_id': production.analytic_account_id.id or False
+                'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
                 'name': name,
@@ -147,12 +153,12 @@ class MRPWorkorder(models.Model):
                 'quantity': 1,
                 'product_uom_id': product.uom_id.id,
                 'ref': ref,
-                'partner_id': production.analytic_account_id and production.analytic_account_id.partner_id or False,
+                'partner_id': partner_id,
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': cost[0],
                 'debit': 0.0,
                 'account_id': production_account_id,
-                'analytic_account_id': production.analytic_account_id.id or False
+                'analytic_account_id': analytic_account_id
             }
             
             move_lines = [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]
@@ -173,12 +179,12 @@ class MRPWorkorder(models.Model):
                 'quantity': 1,
                 'product_uom_id': product.uom_id.id,
                 'ref': ref1,
-                'partner_id': production.analytic_account_id and production.analytic_account_id.partner_id or False,
+                'partner_id': partner_id,
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[1],
                 'account_id': production_account_id,
-                'analytic_account_id': production.analytic_account_id.id or False
+                'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
                 'name': name,
@@ -186,12 +192,12 @@ class MRPWorkorder(models.Model):
                 'quantity': 1,
                 'product_uom_id': product.uom_id.id,
                 'ref': ref1,
-                'partner_id': production.analytic_account_id and production.analytic_account_id.partner_id or False,
+                'partner_id': partner_id,
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': cost[1],
                 'debit': 0.0,
                 'account_id': production_account_id,
-                'analytic_account_id': production.analytic_account_id.id or False
+                'analytic_account_id': analytic_account_id
             }
             
             move_lines = [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]

@@ -17,6 +17,7 @@
         "mrp_account",
         "mrp_bom_cost",
         "mrp_production_add_middle_stuff",
+        "ssi_jobs"
     ],
     "data": [
         "wizard/wizard_addition_view.xml",
