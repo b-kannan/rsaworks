@@ -149,7 +149,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[0],
-                'account_id': labor_absorption_acc_id,
+                'account_id': production_account_id,
                 'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
@@ -162,7 +162,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': cost[0],
                 'debit': 0.0,
-                'account_id': production_account_id,
+                'account_id': labor_absorption_acc_id,
                 'analytic_account_id': analytic_account_id
             }
             
@@ -188,7 +188,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[1],
-                'account_id': overhead_absorption_acc_id,
+                'account_id': production_account_id,
                 'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
@@ -201,7 +201,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': cost[1],
                 'debit': 0.0,
-                'account_id': production_account_id,
+                'account_id': overhead_absorption_acc_id,
                 'analytic_account_id': analytic_account_id
             }
             

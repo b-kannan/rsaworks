@@ -16,6 +16,6 @@ class AccountMoveLine(models.Model):
 
     @api.one
     def _prepare_analytic_line(self):
-        result = super(AccountMoveLine, self)._prepare_analytic_line()        
-        result.update({'workcenter_id': self.workcenter_id.id or False})
+        result = super(AccountMoveLine, self)._prepare_analytic_line()       
+        result[0].update({'workcenter_id': self.workcenter_id.id or False})
         return result
