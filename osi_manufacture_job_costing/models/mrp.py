@@ -69,11 +69,6 @@ class MRPWorkorder(models.Model):
                 labor = time_rec.duration * labor_rate
                 burden = time_rec.duration * burden_rate
                 
-                if wc_burden_type == 'rate':
-                    burden = amount * burden_rate
-                else:
-                    burden = labor * burden_rate
-                
                 labor_total += labor
                 burden_total += burden
                 
@@ -95,10 +90,20 @@ class MRPWorkorder(models.Model):
                 self.create_account_move({key:cost_dict[key]})
                 
             wo.update({
-                'labor_cost': wo.labor + labor_total,
-                'burden_cost': wo.burden + burden_total,
-                'total_cost': wo.total + labor_total + burden_total,
+                'labor_cost': wo.labor_cost + labor_total,
+                'burden_cost': wo.burden_cost + burden_total,
+                'total_cost': wo.total_cost + labor_total + burden_total,
             })
+
+    @api.multi
+    def write(self, values):
+    
+        set1 = set(values.keys())
+        set2 = set(['labor_cost', 'burden_cost', 'total_cost', 'time_ids'])
+        
+        if not set1.intersection(set2) and any(workorder.state == 'done' for workorder in self):
+            raise UserError(_('You can not change the finished work order.'))
+        return models.Model.write(self, values)
 
     def create_account_move(self, cost_day):
     
@@ -118,7 +123,7 @@ class MRPWorkorder(models.Model):
             production_account_id = accounts['production_account_id'].id
             job_id = production.ssi_job_id or False
             partner_id = job_id and job_id.partner_id.id or False
-            analytic_account_id = ssi_job_id.aa_id.id or False
+            analytic_account_id = job_id.aa_id.id or False
 
             if not labor_absorption_acc_id or not overhead_absorption_acc_id:
                 raise UserError(_("Labor absorption and labor burden accounts need to be set on the product %s.") % (product.name,))
@@ -144,7 +149,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[0],
-                'account_id': production_account_id,
+                'account_id': labor_absorption_acc_id,
                 'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
@@ -183,7 +188,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[1],
-                'account_id': production_account_id,
+                'account_id': overhead_absorption_acc_id,
                 'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
@@ -268,7 +273,6 @@ class MRPProduction(models.Model):
         move._action_confirm()
         return move
 
-'''
     def _cal_price(self, consumed_moves):
         """Set a price unit on the finished move according to `consumed_moves`.
         """
@@ -277,8 +281,8 @@ class MRPProduction(models.Model):
             mtl_cost = sum([-m.value for m in consumed_moves])
             
         for workorder in self.workorder_ids:
-            labor_cost += workorder.real_labor
-            ovh_cost += workorder.real_overhead
+            labor_cost += workorder.labor_cost
+            ovh_cost += workorder.burden_cost
             
         production_cost = mtl_cost + labor_cost + ovh_cost
         
@@ -288,4 +292,3 @@ class MRPProduction(models.Model):
             finished_move.value = production_cost
             finished_move.price_unit = production_cost / finished_move.product_uom_qty
         return True
-'''
