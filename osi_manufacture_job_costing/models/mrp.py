@@ -43,7 +43,7 @@ class MRPWorkorder(models.Model):
     @api.model
     def run_job_costing_scheduler(self):
         # Get all the in progress workorders and process them one by one
-        in_process_wos = self.env['mrp.workorder'].search(['state','=','progress'])
+        in_process_wos = self.env['mrp.workorder'].search([('state','=','progress')])
         # rollup costs for all in process wos
         if in_process_wos:
             in_process_wos.rollup_costs()
