@@ -39,6 +39,15 @@ class MRPWorkorder(models.Model):
         help='Marks WO that are added for Extra labor. '
              'May have additional material used up too.'
     )
+
+    @api.model
+    def run_job_costing_scheduler(self):
+        # Get all the in progress workorders and process them one by one
+        in_process_wos = self.env['mrp.workorder'].search(['state','=','progress'])
+        # rollup costs for all in process wos
+        if in_process_wos:
+            in_process_wos.rollup_costs()
+
     
     @api.multi
     def rollup_costs(self):

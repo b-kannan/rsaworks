@@ -28,6 +28,7 @@
         "views/product_view.xml",
         "views/stock_view.xml",
         "views/mrp_view.xml",
+        "data/schedule_action.xml",
     ],
     "installable": True,
 }
