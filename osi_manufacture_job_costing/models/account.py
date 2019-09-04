@@ -60,7 +60,7 @@ class AccountInvoice(models.Model):
                     move_line_ids.append((0,0,{
                         'name': inv.origin + ' ' + line.name,
                         'product_id': line.product_id.id,
-                        'quantity': line.product_qty or 1,
+                        'quantity': line.quantity or 1,
                         'account_id': line.product_id.categ_id.property_stock_valuation_account_id.id,
                         'debit': 0,
                         'credit': total_cost,
@@ -74,7 +74,7 @@ class AccountInvoice(models.Model):
                     move_line_ids.append((0,0,{
                         'name': inv.origin + ' ' + line.name,
                         'product_id': line.product_id.id,
-                        'quantity': line.product_qty or 1,
+                        'quantity': line.quantity or 1,
                         'account_id': line.product_id.categ_id.property_account_expense_categ_id.id,
                         'credit': 0,
                         'debit': total_cost,
