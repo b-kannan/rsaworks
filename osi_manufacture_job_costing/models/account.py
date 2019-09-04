@@ -19,3 +19,85 @@ class AccountMoveLine(models.Model):
         result = super(AccountMoveLine, self)._prepare_analytic_line()       
         result[0].update({'workcenter_id': self.workcenter_id.id or False})
         return result
+
+
+class AccountInvoice(models.Model):
+    _inherit = 'account.invoice'
+
+    @api.one
+    def action_invoice_open(self):
+        result = super(AccountInvoice, self).action_invoice_open()       
+        # Generate the Finish Goods to COGS entry for Consumable products
+        # Check for SSI/ Redstick workflow here as Repair order vs normal SO
+        for inv in self:
+            if inv.origin:
+                origin_so = self.env['sale.order'].search([('name','=',inv.origin)])
+                # if origin_so and origin_so.ssi_job_id:
+                if origin_so:
+                    inv.action_job_costing_move_create()
+        return result
+
+    @api.multi
+    def action_job_costing_move_create(self):
+        """ Creates invoice related analytics and financial move lines """
+        account_move = self.env['account.move']
+
+        for inv in self:
+            move_line_ids = []
+            for line in inv.invoice_line_ids:
+                # Check product type and find respective MO to get finish goods costing
+                if line.product_id and line.product_id.type == 'consu':
+                    # Find the MO related to this product and Job and sum all the rollup cost
+                    MO_id = self.env['mrp.production'].search(
+                        [('origin','=',inv.origin),
+                        ('product_id','=', line.product_id.id)])
+                    analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in line.analytic_tag_ids]
+                    tax_ids = []
+                    for tax in line.invoice_line_tax_ids:
+                        tax_ids.append((4, tax.id, None))
+                        for child in tax.children_tax_ids:
+                            if child.type_tax_use != 'none':
+                                tax_ids.append((4, child.id, None))
+                    total_cost = MO_id.material_cost + MO_id.labor_cost + MO_id.burden_cost
+                    # Create Account move line from Finish Goods to COGS account
+                    # Finish Goods = Product Category Valuation Account
+                    # COGS Account = Product Category Expense account
+                    # FG
+                    move_line_ids.append((0,0,{
+                        'name': inv.origin + ' ' + line.name,
+                        'account_id': line.product_id.categ_id.property_stock_valuation_account_id.id,
+                        'debit': 0,
+                        'credit': total_cost,
+                        'partner_id': inv.partner_id.id,
+                        'account_analytic_id': line.account_analytic_id.id,
+                        'analytic_tag_ids': analytic_tag_ids,
+                        'tax_ids':tax_ids,
+                        'invl_id': line.id,
+                        'invoice_id': inv.id,
+                    }))
+                    # COGS
+                    move_line_ids.append((0,0,{
+                        'name': inv.origin + ' ' + line.name,
+                        'account_id': line.product_id.categ_id.property_account_expense_categ_id.id,
+                        'credit': 0,
+                        'debit': total_cost,
+                        'partner_id': inv.partner_id.id,
+                        'account_analytic_id': line.account_analytic_id.id,
+                        'analytic_tag_ids': analytic_tag_ids,
+                        'tax_ids':tax_ids,
+                        'invl_id': line.id,
+                        'invoice_id': inv.id,
+                    }))
+            if move_line_ids:
+                # Create Journal entry for job costing
+                date = inv.date or inv.date_invoice
+                move_vals = {
+                    'ref': 'JOB COSTING' + ' ' + inv.reference,
+                    'line_ids': move_line_ids,
+                    'journal_id': inv.journal_id.id,
+                    'date': date,
+                    'narration': inv.comment,
+                }
+                move = account_move.create(move_vals)
+                move.post(invoice = inv)
+        return True
