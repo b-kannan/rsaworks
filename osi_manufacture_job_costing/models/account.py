@@ -51,17 +51,26 @@ class AccountInvoice(models.Model):
                     MO_id = self.env['mrp.production'].search(
                         [('origin','=',inv.origin),
                         ('product_id','=', line.product_id.id)])
+
+                    # Prepare accounts
+                    accounts = line.product_id.product_tmpl_id.get_product_accounts()
+                    stock_valuation_id = accounts['stock_valuation'].id
+                    expense_account_id = accounts['expense'].id
+                    if not stock_valuation_id or not expense_account_id:
+                        raise UserError(_("Stock valuation or Expense accounts need to be set on the product %s.") % (line.product_id.name,))
+
+                    job_id = MO_id.ssi_job_id or False
                     analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in line.analytic_tag_ids]
                     total_cost = MO_id.material_cost + MO_id.labor_cost + MO_id.burden_cost
                     # Create Account move line from Finish Goods to COGS account
-                    # Finish Goods = Product Category Valuation Account
-                    # COGS Account = Product Category Expense account
+                    # Finish Goods = Product Valuation Account
+                    # COGS Account = Product Expense account
                     # FG
                     move_line_ids.append((0,0,{
                         'name': inv.origin + ' ' + line.name,
                         'product_id': line.product_id.id,
                         'quantity': line.quantity or 1,
-                        'account_id': line.product_id.categ_id.property_stock_valuation_account_id.id,
+                        'account_id': stock_valuation_id,
                         'debit': 0,
                         'credit': total_cost,
                         'partner_id': inv.partner_id.id,
@@ -75,7 +84,7 @@ class AccountInvoice(models.Model):
                         'name': inv.origin + ' ' + line.name,
                         'product_id': line.product_id.id,
                         'quantity': line.quantity or 1,
-                        'account_id': line.product_id.categ_id.property_account_expense_categ_id.id,
+                        'account_id': expense_account_id,
                         'credit': 0,
                         'debit': total_cost,
                         'partner_id': inv.partner_id.id,
@@ -88,7 +97,7 @@ class AccountInvoice(models.Model):
                 # Create Journal entry for job costing
                 date = inv.date or inv.date_invoice
                 move_vals = {
-                    'ref': 'JOB COSTING' + ' ' + inv.reference,
+                    'ref': MO_id.name + ':' + job_id.name +':' + inv.reference,
                     'line_ids': move_line_ids,
                     'journal_id': inv.journal_id.id,
                     'date': date,

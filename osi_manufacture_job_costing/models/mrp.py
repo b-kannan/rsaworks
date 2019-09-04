@@ -40,6 +40,82 @@ class MRPWorkorder(models.Model):
              'May have additional material used up too.'
     )
 
+    @api.multi
+    def button_finish(self):
+        res = super(MRPWorkorder, self).button_finish()
+        # Create Journal Entry from WIP To Finish Goods
+        for wo in self:
+            wo._create_wip2finish_account_move()
+        return res
+
+    def _create_wip2finish_account_move(self):
+        move_obj = self.env['account.move']
+        workorder = self
+
+        cost = workorder.total_cost
+        product = workorder.product_id
+        production = workorder.production_id
+
+        # Prepare accounts
+        accounts = product.product_tmpl_id.get_product_accounts()
+        journal_id = accounts['stock_journal'].id
+        stock_valuation_id = accounts['stock_valuation'].id
+        production_account_id = accounts['production_account_id'].id
+        job_id = production.ssi_job_id or False
+        partner_id = job_id and job_id.partner_id.id or False
+        analytic_account_id = job_id.aa_id.id or False
+
+        if not stock_valuation_id:
+            raise UserError(_("Stock valuation accounts need to be set on the product %s.") % (product.name,))
+
+        if not production_account_id:
+            raise UserError(_("WIP account needs to be set on production location"))
+
+        # Create data for account move and post them
+
+        name = production.name + ' : ' + job_id.name
+        ref = production.name + ' : ' + job_id.name
+
+        # WIP to FG account move lines
+        debit_line_vals = {
+            'name': name,
+            'product_id': product.id,
+            'quantity': workorder.qty_produced or 1,
+            'product_uom_id': product.uom_id.id,
+            'ref': ref,
+            'partner_id': partner_id,
+            'workcenter_id': self.workcenter_id.id or False,
+            'credit': 0.0,
+            'debit': cost,
+            'account_id': stock_valuation_id,
+            'analytic_account_id': analytic_account_id
+        }
+        credit_line_vals = {
+            'name': name,
+            'product_id': product.id,
+            'quantity': workorder.qty_produced or 1,
+            'product_uom_id': product.uom_id.id,
+            'ref': ref,
+            'partner_id': partner_id,
+            'workcenter_id': self.workcenter_id.id or False,
+            'credit': cost,
+            'debit': 0.0,
+            'account_id': production_account_id,
+            'analytic_account_id': analytic_account_id
+        }
+
+        move_lines = [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]
+
+        # WIP to FG account move
+        if move_lines:
+            new_move = move_obj.create(
+                {'journal_id': journal_id,
+                    'line_ids': move_lines,
+                    'date': fields.Date.context_today(self),
+                    'ref': name or ''})
+            new_move.post()
+        return True
+
     @api.model
     def run_job_costing_scheduler(self):
         # Get all the in progress workorders and process them one by one
@@ -142,10 +218,10 @@ class MRPWorkorder(models.Model):
                 
             # Create data for account move and post them
             
-            name = production.name + '-' +  workorder.name
+            name = job_id.name + '-' + production.name + '-' +  workorder.name
             name = workorder.add_consumption and ('Extra Work: ' + name) or name
-            ref = 'Labor - ' + date.strftime("%Y-%m-%d")
-            ref1 = 'Burden - ' + date.strftime("%Y-%m-%d")
+            ref = job_id.name + '-' + production.name + '-' + 'Labor - ' + date.strftime("%Y-%m-%d")
+            ref1 = job_id.name + '-' + production.name + '-' + 'Burden - ' + date.strftime("%Y-%m-%d")
             
             # labor move lines
             debit_line_vals = {
