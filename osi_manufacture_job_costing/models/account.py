@@ -52,12 +52,6 @@ class AccountInvoice(models.Model):
                         [('origin','=',inv.origin),
                         ('product_id','=', line.product_id.id)])
                     analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in line.analytic_tag_ids]
-                    tax_ids = []
-                    for tax in line.invoice_line_tax_ids:
-                        tax_ids.append((4, tax.id, None))
-                        for child in tax.children_tax_ids:
-                            if child.type_tax_use != 'none':
-                                tax_ids.append((4, child.id, None))
                     total_cost = MO_id.material_cost + MO_id.labor_cost + MO_id.burden_cost
                     # Create Account move line from Finish Goods to COGS account
                     # Finish Goods = Product Category Valuation Account
@@ -65,26 +59,28 @@ class AccountInvoice(models.Model):
                     # FG
                     move_line_ids.append((0,0,{
                         'name': inv.origin + ' ' + line.name,
+                        'product_id': line.product_id.id,
+                        'quantity': line.product_qty or 1,
                         'account_id': line.product_id.categ_id.property_stock_valuation_account_id.id,
                         'debit': 0,
                         'credit': total_cost,
                         'partner_id': inv.partner_id.id,
-                        'account_analytic_id': line.account_analytic_id.id,
+                        'analytic_account_id': line.account_analytic_id.id,
                         'analytic_tag_ids': analytic_tag_ids,
-                        'tax_ids':tax_ids,
                         'invl_id': line.id,
                         'invoice_id': inv.id,
                     }))
                     # COGS
                     move_line_ids.append((0,0,{
                         'name': inv.origin + ' ' + line.name,
+                        'product_id': line.product_id.id,
+                        'quantity': line.product_qty or 1,
                         'account_id': line.product_id.categ_id.property_account_expense_categ_id.id,
                         'credit': 0,
                         'debit': total_cost,
                         'partner_id': inv.partner_id.id,
-                        'account_analytic_id': line.account_analytic_id.id,
+                        'analytic_account_id': line.account_analytic_id.id,
                         'analytic_tag_ids': analytic_tag_ids,
-                        'tax_ids':tax_ids,
                         'invl_id': line.id,
                         'invoice_id': inv.id,
                     }))
