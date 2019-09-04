@@ -73,8 +73,8 @@ class MRPWorkorder(models.Model):
 
         # Create data for account move and post them
 
-        name = job_id.name + ' : ' + production.name
-        ref = job_id.name + ' : ' + production.name
+        name = job_id.name + '-' + production.name + '-' + workorder.name
+        ref = job_id.name + '-' + production.name + '-' + workorder.name
 
         # WIP to FG account move lines
         debit_line_vals = {
