@@ -76,7 +76,6 @@ class AccountInvoice(models.Model):
                         'partner_id': inv.partner_id.id,
                         'analytic_account_id': line.account_analytic_id.id,
                         'analytic_tag_ids': analytic_tag_ids,
-                        'invl_id': line.id,
                         'invoice_id': inv.id,
                     }))
                     # COGS
@@ -90,7 +89,6 @@ class AccountInvoice(models.Model):
                         'partner_id': inv.partner_id.id,
                         'analytic_account_id': line.account_analytic_id.id,
                         'analytic_tag_ids': analytic_tag_ids,
-                        'invl_id': line.id,
                         'invoice_id': inv.id,
                     }))
             if move_line_ids:
