@@ -32,8 +32,8 @@ class AccountInvoice(models.Model):
         for inv in self:
             if inv.origin:
                 origin_so = self.env['sale.order'].search([('name','=',inv.origin)])
-                # if origin_so and origin_so.ssi_job_id:
-                if origin_so:
+                if origin_so and origin_so.ssi_job_id:
+                # if origin_so:
                     inv.action_job_costing_move_create()
         return result
 
