@@ -376,6 +376,14 @@ class MRPProduction(models.Model):
                         bom_line.product_uom_id)
                     * new_qty)
                     
+            # Compute extra material
+            for move in production.move_raw_ids:
+                if move.add_consumption:
+                    valuation_amount = move.product_id.standard_price \
+                                       * move.product_qty
+                    material_cost += move.company_id.currency_id.\
+                        round(valuation_amount * move.product_qty)
+                    
             production.update({
                 'labor_cost': labor_cost,
                 'burden_cost': burden_cost,
