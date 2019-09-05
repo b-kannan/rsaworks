@@ -58,7 +58,7 @@ class MRPWorkorder(models.Model):
         production = workorder.production_id
 
         # Prepare accounts
-        accounts = product.product_tmpl_id._get_product_accounts()
+        accounts = product.product_tmpl_id.get_product_accounts()
         journal_id = accounts['stock_journal'].id
         stock_valuation_id = accounts['stock_valuation'].id
         labor_wip_acc_id = accounts['labor_wip_acc_id'].id
@@ -247,7 +247,7 @@ class MRPWorkorder(models.Model):
             production = workorder.production_id
 
             # Prepare accounts
-            accounts = product.product_tmpl_id._get_product_accounts()            
+            accounts = product.product_tmpl_id.get_product_accounts()            
             journal_id = accounts['stock_journal'].id
             labor_absorption_acc_id = accounts['labor_absorption_acc_id'].id
             labor_wip_acc_id = accounts['labor_wip_acc_id'].id
