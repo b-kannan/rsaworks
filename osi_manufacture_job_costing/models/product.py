@@ -79,7 +79,7 @@ class ProductTemplate(models.Model):
             'labor_wip_acc_id':
                 self.property_account_labor_wip_id or
                 self.categ_id.property_account_labor_wip_categ_id,
-            'overhead_absorption_acc_id':
+            'overhead_wip_acc_id':
                 self.property_account_overhead_wip_id or
                 self.categ_id.property_account_overhead_wip_categ_id,            
         })
