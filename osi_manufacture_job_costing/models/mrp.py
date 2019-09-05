@@ -62,7 +62,7 @@ class MRPWorkorder(models.Model):
         journal_id = accounts['stock_journal'].id
         stock_valuation_id = accounts['stock_valuation'].id
         labor_wip_acc_id = accounts['labor_wip_acc_id'].id
-        overhead_wip_acc_id = accounts['overhead_absorption_acc_id'].id
+        overhead_wip_acc_id = accounts['overhead_wip_acc_id'].id
         production_account_id = accounts['production_account_id'].id
         job_id = production.ssi_job_id or False
         partner_id = job_id and job_id.partner_id.id or False
@@ -71,10 +71,10 @@ class MRPWorkorder(models.Model):
         if not stock_valuation_id:
             raise UserError(_("Stock valuation accounts need to be set on the product %s.") % (product.name,))
 
-        if not labor_wip_acc_id and not overhead_wip_acc_id:
+        if not labor_wip_acc_id or not overhead_wip_acc_id:
             raise UserError(_("Labor and Burden WIP accounts need to be set."))
             
-        if not labor_wip_acc_id and not overhead_wip_acc_id and not production_account_id:
+        if not labor_wip_acc_id or not overhead_wip_acc_id or not production_account_id:
             raise UserError(_("WIP account needs to be set on production location"))
 
         # Create data for account move and post them
@@ -252,7 +252,7 @@ class MRPWorkorder(models.Model):
             labor_absorption_acc_id = accounts['labor_absorption_acc_id'].id
             labor_wip_acc_id = accounts['labor_wip_acc_id'].id
             overhead_absorption_acc_id = accounts['overhead_absorption_acc_id'].id
-            overhead_wip_acc_id = accounts['overhead_absorption_acc_id'].id
+            overhead_wip_acc_id = accounts['overhead_wip_acc_id'].id
             production_account_id = accounts['production_account_id'].id
             job_id = production.ssi_job_id or False
             partner_id = job_id and job_id.partner_id.id or False
@@ -261,10 +261,10 @@ class MRPWorkorder(models.Model):
             if not labor_absorption_acc_id or not overhead_absorption_acc_id:
                 raise UserError(_("Labor absorption and labor burden accounts need to be set on the product %s.") % (product.name,))
                 
-            if not labor_wip_acc_id or overhead_wip_acc_id :
+            if not labor_wip_acc_id or not overhead_wip_acc_id :
                 raise UserError(_("Labor and Burden WIP accounts needs to be set."))
 
-            if not labor_wip_acc_id or overhead_wip_acc_id and not production_account_id:
+            if not labor_wip_acc_id or not overhead_wip_acc_id or not production_account_id:
                 raise UserError(_("WIP account needs to be set on production location."))
                 
             # Create data for account move and post them
