@@ -34,14 +34,52 @@ class StockMove(models.Model):
 
         # adjust account move line name to show product name
         result=[]
+        production = self.production_id or self.workorder_id.production_id or False
+        job_id = self.production_id.ssi_job_id or self.workorder_id.production_id.ssi_job_id or False
+        
         for item in res:
             item[2]['name'] = self.product_id.name
-            item[2]['partner_id'] = self.workorder_id.production_id.ssi_job_id.partner_id.id or False
-            item[2]['analytic_account_id'] = self.workorder_id.production_id.ssi_job_id.aa_id.id or False
+            item[2]['partner_id'] = job_id and job_id.partner_id.id or False
+            item[2]['analytic_account_id'] = job_id and job_id.aa_id.id or False
             result.append(item)
             
         return result
 
+    def _create_account_move_line(self, credit_account_id, debit_account_id, journal_id):
+        self.ensure_one()
+        AccountMove = self.env['account.move']
+        quantity = self.env.context.get('forced_quantity', self.product_qty)
+        quantity = quantity if self._is_in() else -1 * quantity
+
+        # Make an informative `ref` on the created account move to differentiate between classic
+        # movements, vacuum and edition of past moves.
+        ref = self.picking_id.name
+        if self.env.context.get('force_valuation_amount'):
+            if self.env.context.get('forced_quantity') == 0:
+                ref = 'Revaluation of %s (negative inventory)' % ref
+            elif self.env.context.get('forced_quantity') is not None:
+                ref = 'Correction of %s (modification of past move)' % ref
+
+        move_lines = self.with_context(forced_ref=ref)._prepare_account_move_line(quantity, abs(self.value), credit_account_id, debit_account_id)
+        if move_lines:            
+            production = self.production_id or self.workorder_id.production_id or False
+            job_id = self.production_id.ssi_job_id or self.workorder_id.production_id.ssi_job_id or False
+            if job_id and production:
+                ref = job_id.name + '-' + production.name
+            else:
+                ref = False
+            partner_id = job_id and job_id.partner_id.id or False
+            date = self._context.get('force_period_date', fields.Date.context_today(self))
+            new_account_move = AccountMove.sudo().create({
+                'journal_id': journal_id,
+                'line_ids': move_lines,
+                'date': date,
+                'stock_move_id': self.id,
+            })
+            new_account_move.write({'ref': ref,
+                'partner_id': partner_id})
+            new_account_move.post()
+                
     def _run_valuation(self, quantity=None):
         self.ensure_one()
         value_to_return = 0
