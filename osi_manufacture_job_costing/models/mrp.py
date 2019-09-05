@@ -52,14 +52,17 @@ class MRPWorkorder(models.Model):
         move_obj = self.env['account.move']
         workorder = self
 
-        cost = workorder.total_cost
+        labor_cost = workorder.labor_cost
+        burden_cost = workorder.burden_cost
         product = workorder.product_id
         production = workorder.production_id
 
         # Prepare accounts
-        accounts = product.product_tmpl_id.get_product_accounts()
+        accounts = product.product_tmpl_id._get_product_accounts()
         journal_id = accounts['stock_journal'].id
         stock_valuation_id = accounts['stock_valuation'].id
+        labor_wip_acc_id = accounts['labor_wip_acc_id'].id
+        overhead_wip_acc_id = accounts['overhead_absorption_acc_id'].id
         production_account_id = accounts['production_account_id'].id
         job_id = production.ssi_job_id or False
         partner_id = job_id and job_id.partner_id.id or False
@@ -68,7 +71,10 @@ class MRPWorkorder(models.Model):
         if not stock_valuation_id:
             raise UserError(_("Stock valuation accounts need to be set on the product %s.") % (product.name,))
 
-        if not production_account_id:
+        if not labor_wip_acc_id and not overhead_wip_acc_id:
+            raise UserError(_("Labor and Burden WIP accounts need to be set."))
+            
+        if not labor_wip_acc_id and not overhead_wip_acc_id and not production_account_id:
             raise UserError(_("WIP account needs to be set on production location"))
 
         # Create data for account move and post them
@@ -76,7 +82,7 @@ class MRPWorkorder(models.Model):
         name = job_id.name + '-' + production.name + '-' + workorder.name
         ref = job_id.name + '-' + production.name + '-' + workorder.name
 
-        # WIP to FG account move lines
+        # WIP to FG account move lines (Labor)
         debit_line_vals = {
             'name': name,
             'product_id': product.id,
@@ -86,7 +92,7 @@ class MRPWorkorder(models.Model):
             'partner_id': partner_id,
             'workcenter_id': self.workcenter_id.id or False,
             'credit': 0.0,
-            'debit': cost,
+            'debit': labor_cost,
             'account_id': stock_valuation_id,
             'analytic_account_id': analytic_account_id
         }
@@ -98,15 +104,15 @@ class MRPWorkorder(models.Model):
             'ref': ref,
             'partner_id': partner_id,
             'workcenter_id': self.workcenter_id.id or False,
-            'credit': cost,
+            'credit': labor_cost,
             'debit': 0.0,
-            'account_id': production_account_id,
+            'account_id': labor_wip_acc_id or production_account_id,
             'analytic_account_id': analytic_account_id
         }
 
         move_lines = [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]
 
-        # WIP to FG account move
+        # WIP to FG account move (Labor)
         if move_lines:
             new_move = move_obj.create(
                 {'journal_id': journal_id,
@@ -114,6 +120,46 @@ class MRPWorkorder(models.Model):
                     'date': fields.Date.context_today(self),
                     'ref': name or ''})
             new_move.post()
+
+        # WIP to FG account move lines (Overhead)
+        debit_line_vals = {
+            'name': name,
+            'product_id': product.id,
+            'quantity': workorder.qty_produced or 1,
+            'product_uom_id': product.uom_id.id,
+            'ref': ref,
+            'partner_id': partner_id,
+            'workcenter_id': self.workcenter_id.id or False,
+            'credit': 0.0,
+            'debit': burden_cost,
+            'account_id': stock_valuation_id,
+            'analytic_account_id': analytic_account_id
+        }
+        credit_line_vals = {
+            'name': name,
+            'product_id': product.id,
+            'quantity': workorder.qty_produced or 1,
+            'product_uom_id': product.uom_id.id,
+            'ref': ref,
+            'partner_id': partner_id,
+            'workcenter_id': self.workcenter_id.id or False,
+            'credit': burden_cost,
+            'debit': 0.0,
+            'account_id': overhead_wip_acc_id or production_account_id,
+            'analytic_account_id': analytic_account_id
+        }
+
+        move_lines = [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]
+
+        # WIP to FG account move (Labor)
+        if move_lines:
+            new_move = move_obj.create(
+                {'journal_id': journal_id,
+                    'line_ids': move_lines,
+                    'date': fields.Date.context_today(self),
+                    'ref': name or ''})
+            new_move.post()
+            
         return True
 
     @api.model
@@ -201,10 +247,12 @@ class MRPWorkorder(models.Model):
             production = workorder.production_id
 
             # Prepare accounts
-            accounts = product.product_tmpl_id.get_product_accounts()
+            accounts = product.product_tmpl_id._get_product_accounts()            
             journal_id = accounts['stock_journal'].id
             labor_absorption_acc_id = accounts['labor_absorption_acc_id'].id
+            labor_wip_acc_id = accounts['labor_wip_acc_id'].id
             overhead_absorption_acc_id = accounts['overhead_absorption_acc_id'].id
+            overhead_wip_acc_id = accounts['overhead_absorption_acc_id'].id
             production_account_id = accounts['production_account_id'].id
             job_id = production.ssi_job_id or False
             partner_id = job_id and job_id.partner_id.id or False
@@ -213,8 +261,11 @@ class MRPWorkorder(models.Model):
             if not labor_absorption_acc_id or not overhead_absorption_acc_id:
                 raise UserError(_("Labor absorption and labor burden accounts need to be set on the product %s.") % (product.name,))
                 
-            if not production_account_id:
-                raise UserError(_("WIP account needs to be set on production location"))
+            if not labor_wip_acc_id or overhead_wip_acc_id :
+                raise UserError(_("Labor and Burden WIP accounts needs to be set."))
+
+            if not labor_wip_acc_id or overhead_wip_acc_id and not production_account_id:
+                raise UserError(_("WIP account needs to be set on production location."))
                 
             # Create data for account move and post them
             
@@ -234,7 +285,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[0],
-                'account_id': production_account_id,
+                'account_id': labor_wip_acc_id or production_account_id,
                 'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
@@ -273,7 +324,7 @@ class MRPWorkorder(models.Model):
                 'workcenter_id': self.workcenter_id.id or False,
                 'credit': 0.0,
                 'debit': cost[1],
-                'account_id': production_account_id,
+                'account_id': overhead_wip_acc_id or production_account_id,
                 'analytic_account_id': analytic_account_id
             }
             credit_line_vals = {
