@@ -159,7 +159,7 @@ class MRPWorkorder(models.Model):
                     'date': fields.Date.context_today(self),
                     'ref': name or ''})
             new_move.post()
-            
+                                   
         return True
 
     @api.model
@@ -424,11 +424,7 @@ class MRPProduction(models.Model):
         if consumed_moves:
             mtl_cost = sum([-m.value for m in consumed_moves])
             
-        for workorder in self.workorder_ids:
-            labor_cost += workorder.labor_cost
-            ovh_cost += workorder.burden_cost
-            
-        production_cost = mtl_cost + labor_cost + ovh_cost
+        production_cost = mtl_cost
         
         finished_move = self.move_finished_ids.filtered(lambda x: x.product_id == self.product_id and x.state not in ('done', 'cancel') and x.quantity_done > 0)
         if finished_move:
