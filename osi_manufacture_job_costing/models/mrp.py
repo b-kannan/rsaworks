@@ -68,7 +68,7 @@ class MRPWorkorder(models.Model):
         production_account_id = accounts['production_account_id'].id
         job_id = production.ssi_job_id or False
         partner_id = job_id and job_id.partner_id.id or False
-        analytic_account_id = job_id.aa_id.id or False
+        analytic_account_id = job_id and job_id.aa_id.id or False
 
         if not stock_valuation_id:
             raise UserError(_("Stock valuation accounts need to be set on the product %s.") % (product.name,))
@@ -81,8 +81,8 @@ class MRPWorkorder(models.Model):
 
         # Create data for account move and post them
 
-        name = job_id.name + '-' + production.name + '-' + workorder.name
-        ref = job_id.name + '-' + production.name + '-' + workorder.name
+        name = job_id and job_id.name + '-' + production.name + '-' + workorder.name or production.name + '-' + workorder.name
+        ref = job_id and job_id.name + '-' + production.name + '-' + workorder.name or production.name + '-' + workorder.name
 
         # WIP to FG account move lines (Labor)
         debit_line_vals = {
@@ -258,7 +258,7 @@ class MRPWorkorder(models.Model):
             production_account_id = accounts['production_account_id'].id
             job_id = production.ssi_job_id or False
             partner_id = job_id and job_id.partner_id.id or False
-            analytic_account_id = job_id.aa_id.id or False
+            analytic_account_id = job_id and job_id.aa_id.id or False
 
             if not labor_absorption_acc_id or not overhead_absorption_acc_id:
                 raise UserError(_("Labor absorption and labor burden accounts need to be set on the product %s.") % (product.name,))
@@ -271,10 +271,10 @@ class MRPWorkorder(models.Model):
                 
             # Create data for account move and post them
             
-            name = job_id.name + '-' + production.name + '-' +  workorder.name
+            name = job_id and job_id.name + '-' + production.name + '-' +  workorder.name or production.name + '-' +  workorder.name
             name = workorder.add_consumption and ('Extra Work: ' + name) or name
-            ref = job_id.name + '-' + production.name + '-' + 'Labor - ' + date.strftime("%Y-%m-%d")
-            ref1 = job_id.name + '-' + production.name + '-' + 'Burden - ' + date.strftime("%Y-%m-%d")
+            ref = job_id and job_id.name + '-' + production.name + '-' + 'Labor - ' + date.strftime("%Y-%m-%d") or production.name + '-' + 'Labor - ' + date.strftime("%Y-%m-%d")
+            ref1 = job_id and job_id.name + '-' + production.name + '-' + 'Burden - ' + date.strftime("%Y-%m-%d") or production.name + '-' + 'Burden - ' + date.strftime("%Y-%m-%d")
             
             # labor move lines
             debit_line_vals = {

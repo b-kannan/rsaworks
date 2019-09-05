@@ -36,6 +36,8 @@ class StockMove(models.Model):
         result=[]
         for item in res:
             item[2]['name'] = self.product_id.name
+            item[2]['partner_id'] = self.workorder_id.production_id.ssi_job_id.partner_id.id or False
+            item[2]['analytic_account_id'] = self.workorder_id.production_id.ssi_job_id.aa_id.id or False
             result.append(item)
             
         return result
