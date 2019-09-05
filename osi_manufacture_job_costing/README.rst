@@ -33,6 +33,7 @@ Usage
 * Process work order for the unprocessed time entries
 * It will create journal entries. If analytic account found at work center,
   it will create analytic entries as well.
+* It will create Job costing scheduler to calculate workorder costing on daily basis.
 
 Credits
 =======
