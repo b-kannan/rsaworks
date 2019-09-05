@@ -17,7 +17,7 @@ Configuration
 =============
 
 * Go to Inventory > Configuration > Products > Product Categories
-* Create/edit product category with accounts for labor and overhead.
+* Create/edit product category with accounts for labor and overhead or burden.
 * Go to Manufacturing > Master Data > Work Centers
 * Create/edit work centers with labor rate, overhead rate
 
