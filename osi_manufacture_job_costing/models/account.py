@@ -57,13 +57,8 @@ class AccountInvoice(models.Model):
         # Check product type and find respective MO to get finish goods costing
         if line.product_id and line.product_id.type == 'consu':
             # Find the MO related to this product and Job and sum all the rollup cost
-            MO_id = self.env['mrp.production'].search(
-                ['|', ('origin','=',inv.origin),
-                    ('ssi_job_id', '=', inv.ssi_job_id.id),
-                ('product_id','=', line.product_id.id)])
-            MO_id = self.env['mrp.production'].search(
-                [('origin','=',inv.origin),
-                ('product_id','=', line.product_id.id)])
+            if len(MO_id) > 1:
+                raise UserError(_("Expecting One MO for product %s and Job %s.") % (line.product_id.name,line.ssi_job_id.name))
 
             # Prepare accounts
             accounts = line.product_id.product_tmpl_id.get_product_accounts()
