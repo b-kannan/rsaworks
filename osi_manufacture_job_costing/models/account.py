@@ -64,12 +64,14 @@ class AccountInvoice(models.Model):
             accounts = line.product_id.product_tmpl_id.get_product_accounts()
             stock_valuation_id = accounts['stock_valuation'].id
             expense_account_id = accounts['expense'].id
+            cogs_material_account_id = accounts['cogs_material_id'].id
+            cogs_labor_account_id = accounts['cogs_labor_id'].id
             if not stock_valuation_id or not expense_account_id:
                 raise UserError(_("Stock valuation or Expense accounts need to be set on the product %s.") % (line.product_id.name,))
 
             job_id = MO_id.ssi_job_id or False
             analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in line.analytic_tag_ids]
-            total_cost = MO_id.material_cost + MO_id.labor_cost + MO_id.burden_cost
+            total_cost =  MO_id.burden_cost + MO_id.labor_cost + MO_id.material_cost
             # Create Account move line from Finish Goods to COGS account
             # Finish Goods = Product Valuation Account
             # COGS Account = Product Expense account
@@ -86,14 +88,40 @@ class AccountInvoice(models.Model):
                 'analytic_tag_ids': analytic_tag_ids,
                 'invoice_id': inv.id,
             }))
-            # COGS
+            # COGS Labor
             move_line_ids.append((0,0,{
                 'name': inv.origin + ' ' + line.name,
                 'product_id': line.product_id.id,
                 'quantity': line.quantity or 1,
-                'account_id': expense_account_id,
+                'account_id': cogs_labor_account_id or expense_account_id,
                 'credit': 0,
-                'debit': total_cost,
+                'debit': MO_id.labor_cost,
+                'partner_id': inv.partner_id.id,
+                'analytic_account_id': line.account_analytic_id.id,
+                'analytic_tag_ids': analytic_tag_ids,
+                'invoice_id': inv.id,
+            }))
+            # COGS Burden
+            move_line_ids.append((0,0,{
+                'name': inv.origin + ' ' + line.name,
+                'product_id': line.product_id.id,
+                'quantity': line.quantity or 1,
+                'account_id': cogs_labor_account_id or expense_account_id,
+                'credit': 0,
+                'debit': MO_id.burden_cost,
+                'partner_id': inv.partner_id.id,
+                'analytic_account_id': line.account_analytic_id.id,
+                'analytic_tag_ids': analytic_tag_ids,
+                'invoice_id': inv.id,
+            }))
+            # COGS Material
+            move_line_ids.append((0,0,{
+                'name': inv.origin + ' ' + line.name,
+                'product_id': line.product_id.id,
+                'quantity': line.quantity or 1,
+                'account_id': cogs_material_account_id or expense_account_id,
+                'credit': 0,
+                'debit': MO_id.material_cost,
                 'partner_id': inv.partner_id.id,
                 'analytic_account_id': line.account_analytic_id.id,
                 'analytic_tag_ids': analytic_tag_ids,
