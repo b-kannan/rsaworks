@@ -510,7 +510,7 @@ class MRPProduction(models.Model):
                     valuation_amount = move.product_id.standard_price \
                                        * move.product_qty
                     material_cost += move.company_id.currency_id.\
-                        round(valuation_amount * move.product_qty)
+                        round(valuation_amount)
                     
             production.update({
                 'labor_cost': labor_cost,
