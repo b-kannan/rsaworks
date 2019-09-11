@@ -14,10 +14,11 @@
 				  <tree>
 					  <field name="equipment_id"/>
 					  <field name="location_id"/>
-					  <field name="equip_serial_no"/>
 					  <field name="check_in"/>
 					  <field name="check_out"/>
 					  <field name="equip_square_feet"/>
+					  <field name="subscription_price"/>
+					  <field name="last_invoiced"/>
 				  </tree>
 				</field>
                 <group class="oe_subtotal_footer oe_right">
@@ -26,6 +27,9 @@
 			  </group>
 			</page>
 		  </xpath>
+          <xpath expr="//button[@name='action_open_sales']" position="after">
+              <button name="ssi_update_lines" type="object" class="oe_stat_button" icon="fa-refresh" string="Update Lines"/>
+          </xpath>
       </field>
   </record>
 
