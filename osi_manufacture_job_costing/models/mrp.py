@@ -201,7 +201,7 @@ class MRPWorkorder(models.Model):
             burden_total = 0.0
             
             for time_rec in time_ids:
-                if time_rec.cost_already_recorded:
+                if time_rec.cost_already_recorded or not time_rec.date_end:
                     continue
                     
                 labor = time_rec.duration * labor_rate
