@@ -31,6 +31,8 @@
         'views/add_default_job_stages.xml',
         'views/jobs.xml',
         'views/wo.xml',
+        'views/ssi_mrp_production.xml',
+        'views/ssi_account_invoice.xml',
     ],
     'installable': True,
     'application': True,
