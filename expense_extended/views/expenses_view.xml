@@ -8,8 +8,8 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='bank_journal_id']" position="replace" />
             <xpath expr="//field[@name='company_id']" position="after">
-			   <field name="payment_method" options="{'no_open': True, 'no_create': True}"  attrs="{'invisible': [('payment_mode', '!=', 'company_account')]}"/>
-               <field name="bank_journal_id" domain="[('type', 'in', ('cash','bank'))]" options="{'no_open': True, 'no_create': True}" attrs="{'invisible': [('payment_mode', '!=', 'company_account')]}"/>
+			   <field name="payment_method" options="{'no_open': True, 'no_create': True}"  attrs="{'required': [('payment_mode', '=', 'company_account')], 'invisible': [('payment_mode', '!=', 'company_account')]}"/>
+               <field name="bank_journal_id" domain="[('type', 'in', ('cash','bank'))]" options="{'no_open': True, 'no_create': True}" attrs="{'required': [('payment_mode', '=', 'company_account')], 'invisible': [('payment_mode', '!=', 'company_account')]}"/>
             </xpath>
 			<xpath expr="//field[@name='expense_line_ids']/tree/field[@name='name']" position="after">
                 <field name="payment_method"/>
@@ -41,7 +41,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='description']" position="before">
 				<group>
-	                <field name="payment_method" options="{'no_open': True, 'no_create': True}"  attrs="{'invisible': [('payment_mode', '!=', 'company_account')]}" context="{'default_payment_method': payment_method}" />
+	                <field name="payment_method" options="{'no_open': True, 'no_create': True}"  attrs="{'required': [('payment_mode', '=', 'company_account')], 'invisible': [('payment_mode', '!=', 'company_account')]}" context="{'default_payment_method': payment_method}" />
 				</group>
             </xpath>
 			<button name="action_submit_expenses" position="attributes">

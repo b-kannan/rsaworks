@@ -11,12 +11,12 @@ class HrExpense(models.Model):
                                           
     payment_method = fields.Many2one(
         "partner.payment.method",
-        string="Preferred Payment Method"
+        string="Company Credit Card"
     )
 
     @api.multi
     def action_submit_expenses(self):
-        res = super(HrExpense, self).submit_expenses()
+        res = super(HrExpense, self).action_submit_expenses()
         for picking in self:
             if res and picking.payment_method:
                 # Update Payment method in context
@@ -67,7 +67,7 @@ class HrExpense(models.Model):
 class HrExpenseSheet(models.Model):
     _inherit="hr.expense.sheet"
 
-    payment_method = fields.Many2one("partner.payment.method", string="Payment Method")
+    payment_method = fields.Many2one("partner.payment.method", string="Company Card used to Pay")
     emp_manager = fields.Many2one(related='employee_id.parent_id', string='Manager')
     accounting_date = fields.Date(string='Accounting Date')
 
