@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<odoo>
+<!-- Copyright 2018 Open Source Integrators
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+
+    <!-- Expense Reports to Pay tree view -->
+    <record id="view_hr_expense_sheet_register_payment_tree" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.register.payment.tree</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_tree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="after">
+                <field name="address_id" invisible="1"/>
+                <button name="%(hr_expense.hr_expense_sheet_register_payment_wizard_action)d" type="action" string="Register Payment" class="oe_highlight o_expense_sheet_pay" attrs="{'invisible': [('state', '!=', 'post')]}" context="{'default_amount': total_amount, 'partner_id': address_id}" groups="account.group_account_manager"/>
+            </field>
+        </field>
+    </record>
+</odoo>
