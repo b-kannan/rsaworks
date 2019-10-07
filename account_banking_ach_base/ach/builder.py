@@ -58,7 +58,6 @@ class AchFile(object):
             serv_cls_code = '220'
         elif debits:
             serv_cls_code = '225'
-        
         if std_ent_cls_code == 'CTX':
             serv_cls_code = '200'
 
