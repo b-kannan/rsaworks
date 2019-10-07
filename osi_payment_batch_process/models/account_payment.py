@@ -101,11 +101,15 @@ class AccountPayment(models.Model):
                         counterpart_aml['amount_currency'] -= \
                         amount_currency_wo
                 if not self._context.get('is_customer',False):
+                    payment_difference_handling = \
+                    self._context.get('group_data')[p_id]['inv_val'] \
+                        [inv]['payment_difference_handling']
                     payment_difference = self._context.get('group_data') \
                         [p_id]['inv_val'][inv]['payment_difference']
                     writeoff_account_id = self._context.get('group_data') \
                         [p_id]['inv_val'][inv]['writeoff_account_id']
-                    if payment_difference > 0.0:
+                    if payment_difference_handling == 'reconcile' and \
+                            payment_difference > 0.0:
                         writeoff_line = self._get_shared_move_line_vals(
                             0, 0, 0, move.id, False)
                         credit_wo, debit_wo, amount_currency_wo, currency_id = \

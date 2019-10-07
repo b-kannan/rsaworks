@@ -122,6 +122,14 @@ class InvoicePaymentLine(models.TransientModel):
     check_amount_in_words = fields.Char(string="Amount in Words")
     payment_difference = fields.Float(string='Difference Amount',
                                       readonly=True)
+    payment_difference_handling = fields.Selection([
+        ('open', 'Keep open'),
+        ('reconcile', 'Mark invoice as fully paid')
+    ],
+        default='open',
+        string="Action",
+        copy=False
+    )
     writeoff_account_id = fields.Many2one('account.account',
                                           string="Account",
                                           domain=[('deprecated', '!=', True)],
@@ -432,6 +440,8 @@ class AccountRegisterPayments(models.TransientModel):
                         group_data[partner_id]['inv_val'].update(
                             {str(data_get.invoice_id.id): {
                                 'paying_amt': data_get.paying_amt,
+                                'payment_difference_handling': \
+                                data_get.payment_difference_handling,
                                 'payment_difference': data_get.payment_difference,
                                 'writeoff_account_id': \
                                     data_get.writeoff_account_id and \
@@ -466,6 +476,8 @@ class AccountRegisterPayments(models.TransientModel):
                                          'inv_val':
                                              {str(data_get.invoice_id.id): {
                                                  'paying_amt': data_get.paying_amt,
+                                                 'payment_difference_handling': \
+                                                 data_get.payment_difference_handling,
                                                  'payment_difference': data_get.payment_difference,
                                                  'writeoff_account_id': data_get.writeoff_account_id \
                                                                         and data_get.writeoff_account_id.id or False

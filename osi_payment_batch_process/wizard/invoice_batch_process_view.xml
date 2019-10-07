@@ -49,6 +49,7 @@
                             <field name="balance_amt" />
                             <field name="paying_amt" />
                             <field name="check_amount_in_words" invisible="1" />
+                            <field name="payment_difference_handling" />
                             <field name="payment_difference" />
                             <field name="writeoff_account_id"
                                 string="Post Difference In"/>
