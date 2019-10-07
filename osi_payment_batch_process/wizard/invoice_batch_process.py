@@ -126,7 +126,6 @@ class InvoicePaymentLine(models.TransientModel):
         ('open', 'Keep open'),
         ('reconcile', 'Mark invoice as fully paid')
     ],
-        default='open',
         string="Action",
         copy=False
     )
@@ -336,6 +335,14 @@ class AccountRegisterPayments(models.TransientModel):
                                         decimals * 100,\
                                         precision_rounding=1)
                                         )))
+                        # prepare name
+                        name = ''
+                        if data_get.reason_code:
+                            name = str(data_get.reason_code.code)
+                        if data_get.note:
+                            name = name + ': ' + str(data_get.note)
+                        if not name:
+                            name = 'Counterpart'
                         group_data[partner_id].update(\
                           {'partner_id': partner_id,
                            'partner_type': MAP_INVOICE_TYPE_PARTNER_TYPE[\
@@ -349,6 +356,7 @@ class AccountRegisterPayments(models.TransientModel):
                            total_check_amount_in_words})
                         group_data[partner_id]['inv_val'].update(
                              {str(data_get.invoice_id.id): {
+                            'line_name': name,
                             'receiving_amt': data_get.receiving_amt,
                             'payment_difference_handling': \
                             data_get.payment_difference_handling,
@@ -373,6 +381,14 @@ class AccountRegisterPayments(models.TransientModel):
                             total_check_amount_in_words += _(' and %s/100') %\
                             str(int(round(float_round(decimals * 100,
                                                       precision_rounding=1))))
+                        # prepare name
+                        name = ''
+                        if data_get.reason_code:
+                            name = str(data_get.reason_code.code)
+                        if data_get.note:
+                            name = name + ': ' + str(data_get.note)
+                        if not name:
+                            name = 'Counterpart'
                         group_data.update({
                         partner_id: {'partner_id': partner_id,
                        'partner_type': MAP_INVOICE_TYPE_PARTNER_TYPE[data_get.\
@@ -386,6 +402,7 @@ class AccountRegisterPayments(models.TransientModel):
                        'temp_invoice': data_get.invoice_id.id,
                        'inv_val':
                         {str(data_get.invoice_id.id): {
+                        'line_name': name,
                         'receiving_amt': data_get.receiving_amt,
                         'payment_difference_handling': data_get.\
                          payment_difference_handling,
@@ -436,9 +453,18 @@ class AccountRegisterPayments(models.TransientModel):
                             'temp_invoice': data_get.invoice_id.id,
                             'total_check_amount_in_words': \
                                 total_check_amount_in_words})
+                        # prepare name
+                        name = ''
+                        if data_get.reason_code:
+                            name = str(data_get.reason_code.code)
+                        if data_get.note:
+                            name = name + ': ' + str(data_get.note)
+                        if not name:
+                            name = 'Counterpart'
                         # Update with payment diff data
                         group_data[partner_id]['inv_val'].update(
                             {str(data_get.invoice_id.id): {
+                                'line_name': name,
                                 'paying_amt': data_get.paying_amt,
                                 'payment_difference_handling': \
                                 data_get.payment_difference_handling,
@@ -459,6 +485,14 @@ class AccountRegisterPayments(models.TransientModel):
                             math.floor(data_get.paying_amt)
                         ).title()
                         decimals = data_get.paying_amt % 1
+                        # prepare name
+                        name = ''
+                        if data_get.reason_code:
+                            name = str(data_get.reason_code.code)
+                        if data_get.note:
+                            name = name + ': ' + str(data_get.note)
+                        if not name:
+                            name = 'Counterpart'
                         if decimals >= 10 ** -2:
                             total_check_amount_in_words += _(' and %s/100') % \
                                                            str(int(round(float_round( \
@@ -475,6 +509,7 @@ class AccountRegisterPayments(models.TransientModel):
                                          'temp_invoice': data_get.invoice_id.id,
                                          'inv_val':
                                              {str(data_get.invoice_id.id): {
+                                                 'line_name': name,
                                                  'paying_amt': data_get.paying_amt,
                                                  'payment_difference_handling': \
                                                  data_get.payment_difference_handling,

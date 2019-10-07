@@ -10,7 +10,7 @@ class PaymentAdjustmentReason(models.Model):
     _rec_name = "code"
     _description='Payment Adjustment Reason'
 
-    code = fields.Char(string='Code', copy=False)
+    code = fields.Char(string='Code', required=True, copy=False)
     account_id = fields.Many2one('account.account', string='Account')
     reason = fields.Text(string='Reason', copy=False)
 
@@ -78,6 +78,8 @@ class AccountPayment(models.Model):
                     [p_id]['inv_val'][inv]['writeoff_account_id']
                     if payment_difference_handling == 'reconcile' and \
                     payment_difference:
+                        name = self._context.get('group_data') \
+                            [p_id]['inv_val'][inv]['line_name']
                         writeoff_line = self._get_shared_move_line_vals(
                                                     0, 0, 0, move.id, False)
                         debit_wo, credit_wo, amount_currency_wo, currency_id =\
@@ -87,7 +89,7 @@ class AccountPayment(models.Model):
                                             self.currency_id,
                                             self.company_id.currency_id
                         )
-                        writeoff_line['name'] = _('Counterpart')
+                        writeoff_line['name'] = name
                         writeoff_line['account_id'] = writeoff_account_id
                         writeoff_line['debit'] = debit_wo
                         writeoff_line['credit'] = credit_wo
@@ -119,7 +121,9 @@ class AccountPayment(models.Model):
                                 self.currency_id,
                                 self.company_id.currency_id
                             )
-                        writeoff_line['name'] = _('Counterpart')
+                        name = self._context.get('group_data') \
+                            [p_id]['inv_val'][inv]['line_name']
+                        writeoff_line['name'] = name
                         writeoff_line['account_id'] = writeoff_account_id
                         writeoff_line['debit'] = debit_wo
                         writeoff_line['credit'] = credit_wo
